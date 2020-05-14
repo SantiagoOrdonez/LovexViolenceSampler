@@ -12,6 +12,9 @@
 
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "PluginProcessor.h"
+#include "SampleVisualizer.h"
+#include "ADSRComponent.h"
+
 
 //==============================================================================
 /**
@@ -34,7 +37,8 @@ private:
     // This reference is provided as a quick way for your editor to
     // access the processor object that created it.
     LovexViolenceSamplerAudioProcessor& processor;
-    std::vector<float> audioPoints; 
+    SampleVisualizer* sampleVisualizer;
+    ADSRComponent* adsrComponent;
     TextButton loadButton{ "Load" };
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (LovexViolenceSamplerAudioProcessorEditor)
 };

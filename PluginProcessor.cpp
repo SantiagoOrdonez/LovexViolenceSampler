@@ -21,7 +21,7 @@ LovexViolenceSamplerAudioProcessor::LovexViolenceSamplerAudioProcessor()
                       #endif
                        .withOutput ("Output", AudioChannelSet::stereo(), true)
                      #endif
-                       )
+                       ), APVTS (*this, nullptr, "parameters", createParameterLayout())
 #endif
 {
     formatManager.registerBasicFormats();
@@ -101,7 +101,23 @@ void LovexViolenceSamplerAudioProcessor::prepareToPlay (double sampleRate, int s
 {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
+    updateADSR();
     sampler.setCurrentPlaybackSampleRate(sampleRate);
+}
+
+void LovexViolenceSamplerAudioProcessor::updateADSR()
+{
+    adsr.attack = *APVTS.getRawParameterValue("ATTACK");
+    adsr.decay = *APVTS.getRawParameterValue("DECAY");
+    adsr.sustain = *APVTS.getRawParameterValue("SUSTAIN");
+    adsr.release = *APVTS.getRawParameterValue("RELEASE");
+
+    for (int i = 0; i < sampler.getNumSounds(); i++) {
+        const auto sound = dynamic_cast<SamplerSound*>(sampler.getSound(i).get());
+        if (sound != NULL) {
+            sound->setEnvelopeParameters(getADSRParams());
+        }
+    }
 }
 
 void LovexViolenceSamplerAudioProcessor::releaseResources()
@@ -213,8 +229,25 @@ void LovexViolenceSamplerAudioProcessor::loadSample(File file) {
 
     BigInteger bitfield;
     bitfield.setRange(0, 128, true);
-    sampler.addSound(new SamplerSound("Sample", *formatReader, bitfield, 60, 0.1, 0.1, 10));
+    sampler.addSound(new SamplerSound("Sample", *formatReader, bitfield, 60, getADSRParams().attack, getADSRParams().release, 10));
 }
+AudioProcessorValueTreeState::ParameterLayout LovexViolenceSamplerAudioProcessor::createParameterLayout()
+{
+    std::vector<std::unique_ptr<AudioParameterFloat>> parameters;
+
+    parameters.push_back(std::make_unique<AudioParameterFloat>("ATTACK", "Attack", 0.0f, 5.0f, 0.0));
+    parameters.push_back(std::make_unique<AudioParameterFloat>("DECAY", "Decay", 0.0f, 3.0f, 0.2f));
+    parameters.push_back(std::make_unique<AudioParameterFloat>("SUSTAIN", "Sustain", 0.0f, 1.0f, 1.0f));
+    parameters.push_back(std::make_unique<AudioParameterFloat>("RELEASE", "Release", 0.0f, 5.0f, 3.0f));
+
+    return {parameters.begin(), parameters.end()};
+}
+
+void LovexViolenceSamplerAudioProcessor::valueTreePropertyChanged(ValueTree& treeWhosePropertyHasChanged, const Identifier& property)
+{
+    updateADSR();
+}
+
 //==============================================================================
 // This creates new instances of the plugin..
 AudioProcessor* JUCE_CALLTYPE createPluginFilter()

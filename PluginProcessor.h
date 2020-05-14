@@ -15,7 +15,8 @@
 //==============================================================================
 /**
 */
-class LovexViolenceSamplerAudioProcessor  : public AudioProcessor
+class LovexViolenceSamplerAudioProcessor  : public AudioProcessor, 
+                                            public ValueTree::Listener
 {
 public:
     //==============================================================================
@@ -24,6 +25,7 @@ public:
 
     //==============================================================================
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
+    void updateADSR();
     void releaseResources() override;
 
    #ifndef JucePlugin_PreferredChannelConfigurations
@@ -62,12 +64,18 @@ public:
         return sampler.getNumSounds();
     }
     AudioBuffer<float>& getWaveform() { return waveform; };
+    ADSR::Parameters& getADSRParams() { return adsr; };
+    AudioProcessorValueTreeState& getAPVTS() { return APVTS; };
 private:
-    Synthesiser sampler; 
-    const int samplerVoices = 3; 
+    Synthesiser sampler;
+    const int samplerVoices = 3;
+    ADSR::Parameters adsr { 0.1f, 0.1f, 1.0f, 0.1f};
+    AudioProcessorValueTreeState APVTS;
     AudioBuffer<float> waveform;
     AudioFormatManager formatManager; 
     AudioFormatReader* formatReader{ nullptr };
+    AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
+    void valueTreePropertyChanged(ValueTree& treeWhosePropertyHasChanged, const Identifier& property) override;
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (LovexViolenceSamplerAudioProcessor)
 };
